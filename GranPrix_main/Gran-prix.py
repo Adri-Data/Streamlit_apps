@@ -53,10 +53,10 @@ def actualizar_puntuaciones(df):
 
 def highlight_max(s):
     is_max = s == s.max()
-    return ['background-color: #506266' if v else '' for v in is_max]
+    return ['background-color: #F2A71B' if v else '' for v in is_max]
 
 def highlight_first_team(df):
-    return ['background-color: #506266' if i == 0 else '' for i in range(len(df))]
+    return ['background-color: #F2A71B' if i == 0 else '' for i in range(len(df))]
 
 def get_styled_df(df):
     return df.style\
