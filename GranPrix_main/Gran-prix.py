@@ -6,7 +6,9 @@ import os
 st.set_page_config(
     page_title="XVI Grand Prix Peñero 2024",
     page_icon="🏆",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items=None
 )
 
 # Constantes
@@ -33,7 +35,9 @@ def cargar_puntuaciones():
             st.warning("Se ha detectado un cambio en las pruebas o un archivo corrupto. Se ha creado una nueva tabla de puntuaciones.")
     else:
         df = crear_df_vacio()
-    return df.sort_values('Total', ascending=False).reset_index(drop=True)
+    df = df.sort_values('Total', ascending=False).reset_index(drop=True)
+    df.index = df.index + 1  # Añadir esta línea para que el índice empiece en 1
+    return df
 
 def crear_df_vacio():
     return pd.DataFrame(columns=['Peñes'] + PRUEBAS + ['Total'])
@@ -43,14 +47,16 @@ def guardar_puntuaciones(df):
 
 def actualizar_puntuaciones(df):
     df['Total'] = df[PRUEBAS].sum(axis=1)
-    return df.sort_values('Total', ascending=False).reset_index(drop=True)
+    df = df.sort_values('Total', ascending=False).reset_index(drop=True)
+    df.index = df.index + 1  # Añadir esta línea para que el índice empiece en 1
+    return df
 
 def highlight_max(s):
     is_max = s == s.max()
-    return ['background-color: #FFA500' if v else '' for v in is_max]
+    return ['background-color: #506266' if v else '' for v in is_max]
 
 def highlight_first_team(df):
-    return ['background-color: #FFA500' if i == 0 else '' for i in range(len(df))]
+    return ['background-color: #506266' if i == 0 else '' for i in range(len(df))]
 
 def get_styled_df(df):
     return df.style\
