@@ -6,8 +6,8 @@ import os
 st.set_page_config(
     page_title="XVI Grand Prix Peñero 2024",
     page_icon="🏆",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    layout="centered",  # Cambiado de "wide" a "centered"
+    initial_sidebar_state="collapsed",  # Cambiado de "expanded" a "collapsed"
     menu_items=None
 )
 
@@ -68,14 +68,13 @@ if 'df_puntuaciones' not in st.session_state:
     st.session_state.df_puntuaciones = cargar_puntuaciones()
 
 # Título principal
-st.markdown("<h1 style='text-align: center;'>🏆🐂 XVI Grand Prix Peñero 2024 🐂🏆</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; font-size: 24px;'>🏆🐂 XVI Grand Prix Peñero 2024 🐂🏆</h1>", unsafe_allow_html=True)
 
 # Mostrar el dataframe principal
-st.markdown("<h2 style='text-align: center;'>Puntuaciones</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; font-size: 20px;'>Puntuaciones</h2>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([1,5,1])
-with col2:
-    st.dataframe(get_styled_df(st.session_state.df_puntuaciones), use_container_width=True)
+# Eliminamos las columnas y mostramos el dataframe a ancho completo
+st.dataframe(get_styled_df(st.session_state.df_puntuaciones), use_container_width=True)
 
 # Sección de administrador (disimulada)
 with st.expander("Opciones avanzadas"):
@@ -84,33 +83,33 @@ with st.expander("Opciones avanzadas"):
     if password == ADMIN_PASSWORD:
         df = st.session_state.df_puntuaciones.copy()  # Trabajar con una copia
         
-        col1, col2 = st.columns(2)
-        with col1:
-            nueva_peña = st.text_input("Añadir nueva peña")
-            if st.button("Añadir peña") and nueva_peña and nueva_peña not in df['Peñes'].tolist():
-                nueva_fila = pd.DataFrame({'Peñes': [nueva_peña], **{prueba: [0] for prueba in PRUEBAS}, 'Total': [0]})
-                df = pd.concat([df, nueva_fila], ignore_index=True)
-                df = actualizar_puntuaciones(df)
-                st.success(f"Peña {nueva_peña} añadida")
-                guardar_puntuaciones(df)
-                st.session_state.df_puntuaciones = df  # Actualizar el estado
+        nueva_peña = st.text_input("Añadir nueva peña")
+        if st.button("Añadir peña") and nueva_peña and nueva_peña not in df['Peñes'].tolist():
+            nueva_fila = pd.DataFrame({'Peñes': [nueva_peña], **{prueba: [0] for prueba in PRUEBAS}, 'Total': [0]})
+            df = pd.concat([df, nueva_fila], ignore_index=True)
+            df = actualizar_puntuaciones(df)
+            st.success(f"Peña {nueva_peña} añadida")
+            guardar_puntuaciones(df)
+            st.session_state.df_puntuaciones = df  # Actualizar el estado
 
-        with col2:
-            peña = st.selectbox("Seleccionar Peña para editar/eliminar", options=df['Peñes'].tolist())
+        peña = st.selectbox("Seleccionar Peña para editar/eliminar", options=df['Peñes'].tolist())
+        
+        if peña:
+            puntuaciones = {}
+            for prueba in PRUEBAS:
+                puntuaciones[prueba] = st.number_input(prueba, value=df.loc[df['Peñes'] == peña, prueba].values[0], key=f"{peña}_{prueba}")
             
-            if peña:
-                puntuaciones = {}
-                for prueba in PRUEBAS:
-                    puntuaciones[prueba] = st.number_input(prueba, value=df.loc[df['Peñes'] == peña, prueba].values[0])
-                
-                if st.button("Actualizar Puntuaciones"):
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Actualizar"):
                     df.loc[df['Peñes'] == peña, PRUEBAS] = list(puntuaciones.values())
                     df = actualizar_puntuaciones(df)
                     st.success(f"Puntuaciones actualizadas para la peña {peña}")
                     guardar_puntuaciones(df)
                     st.session_state.df_puntuaciones = df  # Actualizar el estado
-                
-                if st.button("Eliminar Peña"):
+            
+            with col2:
+                if st.button("Eliminar"):
                     df = df[df['Peñes'] != peña]
                     df = actualizar_puntuaciones(df)
                     st.success(f"Peña {peña} eliminada")
@@ -135,7 +134,8 @@ with st.expander("Galería de fotos"):
 
 # Pie de página
 st.markdown("---")
-st.markdown("<p style='text-align: center;'>¡Disfruteu del Gran Prix Peñeros! 🎉🏆</p>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>🥳Fet per Adrián Navarro de No Parem Mai🥳</p>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'><a href='https://www.linkedin.com/in/adrian-ai-datascience/' target='_blank'>Adrián Navarro</a> <img src='https://content.linkedin.com/content/dam/me/business/en-us/amp/brand-site/v2/bg/LI-Bug.svg.original.svg' width='20' height='20'></p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 14px;'>¡Disfruteu del Gran Prix Peñeros! 🎉🏆</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 12px;'>🥳Fet per Adrián Navarro de No Parem Mai🥳</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 12px;'><a href='https://www.linkedin.com/in/adrian-ai-datascience/' target='_blank'>Adrián Navarro</a> <img src='https://content.linkedin.com/content/dam/me/business/en-us/amp/brand-site/v2/bg/LI-Bug.svg.original.svg' width='15' height='15'></p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 12px;'>@adri.frg.02 <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1200px-Instagram_logo_2016.svg.png' width='15' height='15'></p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>@adri.frg.02 <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1200px-Instagram_logo_2016.svg.png' width='20' height='20'></p>", unsafe_allow_html=True)
