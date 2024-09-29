@@ -83,6 +83,20 @@ with st.expander("Opciones avanzadas"):
     if password == ADMIN_PASSWORD:
         df = st.session_state.df_puntuaciones.copy()  # Trabajar con una copia
         
+        # Seleccionar la prueba a modificar
+        prueba_seleccionada = st.selectbox("Seleccionar prueba", PRUEBAS)
+        st.markdown(f"### Resultados para {prueba_seleccionada}")
+        
+        for peña in df['Peñes']:
+            puntuacion = st.number_input(f"Puntuación para {peña}", value=df.loc[df['Peñes'] == peña, prueba_seleccionada].values[0], key=f"{peña}_{prueba_seleccionada}_{df.index[df['Peñes'] == peña][0]}")
+            df.loc[df['Peñes'] == peña, prueba_seleccionada] = puntuacion  # Actualizar puntuación directamente
+
+        if st.button("Actualizar puntuaciones"):
+            df = actualizar_puntuaciones(df)
+            st.success("Puntuaciones actualizadas")
+            guardar_puntuaciones(df)
+            st.session_state.df_puntuaciones = df  # Actualizar el estado
+
         nueva_peña = st.text_input("Añadir nueva peña")
         if st.button("Añadir peña") and nueva_peña and nueva_peña not in df['Peñes'].tolist():
             nueva_fila = pd.DataFrame({'Peñes': [nueva_peña], **{prueba: [0] for prueba in PRUEBAS}, 'Total': [0]})
