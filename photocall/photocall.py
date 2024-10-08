@@ -97,7 +97,6 @@ if opcion == "Subir foto 📤":
             # Guardamos la info de las fotos en el archivo 📋
             with open(IMAGE_INFO_FILE, 'w') as f:
                 json.dump(info_fotos, f)
-            st.experimental_rerun()
 
 elif opcion == "Ver fotos 📸":
     # Ordenamos las fotos por likes ❤️
