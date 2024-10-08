@@ -123,7 +123,7 @@ elif opcion == "📁":
     # Añade una opción para introducir una contraseña
     password = st.text_input("Introduce la contraseña", type='password')
 
-    # Si la contraseña es correcta, muestra el botón de descarga
+    # Si la contraseña es correcta, muestra el botón de descarga y la opción de borrar fotos
     if password == "Admin1":
         # Crea un archivo zip
         with zipfile.ZipFile('fotos.zip', 'w') as zip_f:
@@ -142,3 +142,20 @@ elif opcion == "📁":
             file_name='fotos.zip',
             mime='application/zip',
         )
+
+        # Opción para borrar fotos
+        st.subheader("Borrar fotos")
+        foto_a_borrar = st.selectbox("Selecciona la foto a borrar", list(info_fotos.keys()))
+
+        if st.button('Borrar foto', key='borrar_foto'):
+            # Borrar la foto del sistema de archivos
+            try:
+                os.remove(os.path.join(IMG_DIR, foto_a_borrar + '.png'))
+                # Borrar la información de la foto
+                del info_fotos[foto_a_borrar]
+                # Actualizar el archivo de info de las fotos
+                with open(IMAGE_INFO_FILE, 'w') as f:
+                    json.dump(info_fotos, f)
+                st.success('¡Foto borrada con éxito! 🗑️')
+            except Exception as e:
+                st.error(f'Error al borrar la foto: {e}')
