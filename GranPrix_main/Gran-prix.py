@@ -74,7 +74,9 @@ st.markdown("<h1 style='text-align: center; font-size: 24px;'>🏆🐂 XVI Grand
 st.markdown("<h2 style='text-align: center; font-size: 20px;'>Puntuaciones</h2>", unsafe_allow_html=True)
 
 # Eliminamos las columnas y mostramos el dataframe a ancho completo
-st.dataframe(get_styled_df(st.session_state.df_puntuaciones), use_container_width=True)
+#st.dataframe(get_styled_df(st.session_state.df_puntuaciones), use_container_width=True)
+
+st.table(get_styled_df(st.session_state.df_puntuaciones))
 
 # Sección de administrador (disimulada)
 with st.expander("Opciones avanzadas"):
@@ -141,15 +143,9 @@ with st.expander("Opciones avanzadas"):
             st.success("Todos los datos han sido borrados")
             st.experimental_rerun()
 
-# Sección de fotos (reducida)
-with st.expander("Galería de fotos"):
-    st.write("Aquí puedes subir y ver fotos del Gran Prix")
-    # Aquí iría el código para subir y ver fotos (no implementado en este ejemplo)
-
 # Pie de página
 st.markdown("---")
 st.markdown("<p style='text-align: center; font-size: 14px;'>¡Disfruteu del Gran Prix Peñeros! 🎉🏆</p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; font-size: 12px;'>🥳Fet per Adrián Navarro de No Parem Mai🥳</p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; font-size: 12px;'><a href='https://www.linkedin.com/in/adrian-ai-datascience/' target='_blank'>Adrián Navarro</a> <img src='https://content.linkedin.com/content/dam/me/business/en-us/amp/brand-site/v2/bg/LI-Bug.svg.original.svg' width='15' height='15'></p>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 12px;'>@adri.frg.02 <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1200px-Instagram_logo_2016.svg.png' width='15' height='15'></p>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>@adri.frg.02 <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1200px-Instagram_logo_2016.svg.png' width='20' height='20'></p>", unsafe_allow_html=True)
