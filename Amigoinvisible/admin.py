@@ -1,108 +1,180 @@
 import streamlit as st
 import random
-import json
-import os
 import pandas as pd
+from utils import cargar_datos, guardar_datos, ADMIN_PASSWORD
 
-# Función para cargar datos desde un archivo JSON
-def cargar_datos():
-    if os.path.exists('data.json'):
-        with open('data.json', 'r') as f:
-            return json.load(f)
-    return {"nombres": [], "emparejamientos": {}}
+# --- Lógica de Generación ---
 
-# Función para guardar datos en un archivo JSON
-def guardar_datos(nombres, emparejamientos_numerados):
-    with open('data.json', 'w') as f:
-        json.dump({"nombres": nombres, "emparejamientos": emparejamientos_numerados}, f)
+def generar_amigo_invisible(nombres: list, restricciones: dict, max_intentos=10):
+    """
+    Intenta generar el Amigo Invisible con restricciones.
+    Retorna (emparejamientos_numerados, emparejamientos_originales) o None.
+    """
+    
+    # 1. Validación inicial
+    if len(nombres) < 2:
+        st.warning("Se necesitan al menos dos nombres para generar el Amigo Invisible.")
+        return None, None
+    if len(set(nombres)) != len(nombres):
+        st.warning("La lista de nombres contiene duplicados. Por favor, elimínelos.")
+        return None, None
 
-# Función para generar el amigo invisible
-def generar_amigo_invisible(nombres, restricciones):
-    emparejamientos = {}
-    disponibles = nombres.copy()
-
-    # Intentar emparejar a cada persona
-    for nombre in nombres:
-        opciones = [n for n in disponibles if n != nombre and n not in restricciones.get(nombre, [])]
+    emparejamientos = None
+    
+    # 2. Algoritmo de reintentos para evitar callejones sin salida
+    for _ in range(max_intentos):
+        regaladores = nombres.copy()
+        receptores = nombres.copy()
+        random.shuffle(regaladores) # Orden aleatorio para intentar
+        emparejamientos_intento = {}
         
-        if opciones:
+        exito = True
+        for regalador in regaladores:
+            # Filtra receptores: no puede ser él mismo, ni estar en la lista de restricciones
+            opciones = [r for r in receptores 
+                        if r != regalador 
+                        and r not in restricciones.get(regalador, [])]
+            
+            if not opciones:
+                # Falló la asignación, necesitamos reintentar
+                exito = False
+                break
+                
             elegido = random.choice(opciones)
-            emparejamientos[nombre] = elegido
-            disponibles.remove(elegido)
-        else:
-            st.warning(f"No se puede asignar un amigo invisible para {nombre}. "
-                       f"Opciones disponibles: {', '.join(disponibles)}. "
-                       f"Restricciones: {', '.join(restricciones.get(nombre, []))}.")
-            return None
+            emparejamientos_intento[regalador] = elegido
+            receptores.remove(elegido)
 
-    # Verificar que no haya emparejamientos inválidos
-    for nombre, amigo in emparejamientos.items():
-        if amigo in restricciones.get(nombre, []):
-            st.warning(f"Emparejamiento inválido: {nombre} no puede regalar a {amigo}.")
-            return None
+        if exito and not receptores: # Éxito si todos fueron emparejados y la lista de receptores está vacía
+            emparejamientos = emparejamientos_intento
+            break
+            
+    if emparejamientos is None:
+        st.error(f"⚠️ No se pudo generar una asignación válida después de {max_intentos} intentos. "
+                 f"Revisa tus restricciones.")
+        return None, None
 
-    # Asignar números aleatorios entre 1 y 100 a los emparejamientos
+    # 3. Asignación de Números Secretos
     numeros_asignados = set()
     emparejamientos_numerados = {}
     
+    # Asignar un número único a cada regalador (clave es el número)
     for nombre, amigo in emparejamientos.items():
         while True:
-            numero = random.randint(1, 100)
+            # Rango de números más amplio para mayor sensación de aleatoriedad
+            numero = random.randint(00, 99)
             if numero not in numeros_asignados:
                 numeros_asignados.add(numero)
-                emparejamientos_numerados[numero] = (nombre, amigo)
+                # Formato: {numero_secreto: [regalador, receptor]}
+                emparejamientos_numerados[str(numero)] = [nombre, amigo] 
                 break
 
-    return emparejamientos_numerados, emparejamientos  # Devolver también el emparejamiento original
+    return emparejamientos_numerados, emparejamientos
 
-# Función para mostrar la interfaz de administración
+# --- Interfaz de Administración ---
+
 def admin_interface():
-    st.subheader("Área de Administración")
+    st.subheader("⚙️ Área de Administración (Sorteo y Configuración)")
     
-    password = st.text_input("Ingrese la contraseña de administrador", type="password")
+    # 1. Autenticación
+    password = st.text_input("Ingrese la contraseña de administrador", type="password", key="admin_password_input")
     
-    if password == "admin123":  # Cambia esta contraseña por una más segura
-        st.success("Contraseña correcta. ¡Bienvenido, Administrador!")
-        
-        # Cargar datos existentes
-        datos = cargar_datos()
-        nombres = datos["nombres"]
-        emparejamientos = datos["emparejamientos"]
-
-        # Mantener la información en los botones
-        if 'nombres_input' not in st.session_state:
-            st.session_state.nombres_input = ", ".join(nombres) if nombres else "Alice, Bob, Carl, David, Eva"
-        if 'restricciones_input' not in st.session_state:
-            st.session_state.restricciones_input = "Alice: [Bob], Bob: [Alice], Carl: [David]"
-
-        nombres_input = st.text_area("Nombres (separados por comas)", st.session_state.nombres_input)
-        restricciones_input = st.text_area("Restricciones (formato: nombre: [nombre1, nombre2])", st.session_state.restricciones_input)
-
-        if st.button("Generar Amigo Invisible"):
-            st.session_state.nombres_input = nombres_input  # Guardar nombres en el estado de la sesión
-            st.session_state.restricciones_input = restricciones_input  # Guardar restricciones en el estado de la sesión
-            
-            nombres = [nombre.strip() for nombre in nombres_input.split(",")]
-            restricciones = {}
-            
-            for line in restricciones_input.splitlines():
-                if ":" in line:
-                    try:
-                        nombre, restriccion = line.split(":")
-                        restricciones[nombre.strip()] = [n.strip() for n in restriccion.strip()[1:-1].split(",") if n.strip()]
-                    except ValueError:
-                        st.warning("Formato de restricciones incorrecto. Asegúrate de usar 'nombre: [nombre1, nombre2]'.")
-
-            emparejamientos_numerados, emparejamientos = generar_amigo_invisible(nombres, restricciones)
-            
-            if emparejamientos_numerados:
-                st.subheader("Resultados")
-                for numero, (nombre, amigo) in emparejamientos_numerados.items():
-                    st.write(f"{nombre} tiene que hacerle el regalo al número {numero}.")
-                st.session_state.emparejamientos_numerados = emparejamientos_numerados  # Guardar emparejamientos numerados en el estado de la sesión
-                st.session_state.emparejamientos = emparejamientos  # Guardar emparejamientos originales en el estado de la sesión
-                
-                # Guardar datos en el archivo JSON
-                guardar_datos(nombres, emparejamientos_numerados)
-    else:
+    if password != ADMIN_PASSWORD:
         st.warning("Contraseña incorrecta. Inténtalo de nuevo.")
+        return
+        
+    st.success("Contraseña correcta. ¡Bienvenido!")
+    
+    # Cargar datos para el estado inicial de los inputs
+    datos = cargar_datos()
+    
+    # Inicializar el estado de sesión para mantener los valores en los widgets
+    if 'nombres_input' not in st.session_state:
+        st.session_state.nombres_input = ", ".join(datos["nombres"]) if datos["nombres"] else ""
+    if 'restricciones_data' not in st.session_state:
+        # Inicializar un DataFrame vacío o con datos de ejemplo
+        st.session_state.restricciones_data = pd.DataFrame({
+            "Regalador": ["Alice", "Bob"], 
+            "No puede regalar a": ["Bob", "Alice"]
+        })
+
+    # 2. Configuración de Nombres
+    st.markdown("---")
+    st.markdown("### 1. Lista de Participantes")
+    st.session_state.nombres_input = st.text_area(
+        "Nombres (separados por comas: Juan, María, Pedro)", 
+        st.session_state.nombres_input
+    )
+    nombres = [n.strip() for n in st.session_state.nombres_input.split(",") if n.strip()]
+
+    # 3. Configuración de Restricciones (Usando un Data Editor para mejor UX)
+    st.markdown("---")
+    st.markdown("### 2. Restricciones (Quién NO puede regalar a quién)")
+    st.markdown("Añade filas: **Regalador** y el **Nombre** del que NO puede ser receptor.")
+
+    # Usar el Data Editor para una edición más estructurada
+    st.session_state.restricciones_data = st.data_editor(
+        st.session_state.restricciones_data,
+        column_config={
+            "Regalador": st.column_config.SelectboxColumn("Regalador", options=nombres),
+            "No puede regalar a": st.column_config.SelectboxColumn("No puede regalar a", options=nombres)
+        },
+        num_rows="dynamic",
+        use_container_width=True,
+        key="data_editor_restricciones"
+    )
+
+    # Procesar el DataFrame de restricciones a un diccionario
+    restricciones = {}
+    if not st.session_state.restricciones_data.empty:
+        for index, row in st.session_state.restricciones_data.iterrows():
+            regalador = row["Regalador"]
+            receptor_prohibido = row["No puede regalar a"]
+            if regalador and receptor_prohibido:
+                if regalador in restricciones:
+                    restricciones[regalador].append(receptor_prohibido)
+                else:
+                    restricciones[regalador] = [receptor_prohibido]
+
+
+    # 4. Generación y Guardado
+    st.markdown("---")
+    if st.button("✨ Generar y Guardar Amigo Invisible"):
+        if not nombres:
+            st.warning("La lista de nombres está vacía.")
+            return
+
+        # Limpiar restricciones duplicadas y autorrestricciones
+        restricciones_limpias = {}
+        for r, prohibidos in restricciones.items():
+             restricciones_limpias[r] = list(set([p for p in prohibidos if p != r]))
+
+        emparejamientos_numerados, emparejamientos_originales = generar_amigo_invisible(nombres, restricciones_limpias)
+        
+        if emparejamientos_numerados:
+            st.success("¡Amigo Invisible Generado con éxito!")
+            
+            # Guardar el estado
+            guardar_datos(nombres, emparejamientos_numerados)
+            
+            # Mostrar resultados de forma segura para el administrador
+            st.subheader("Resultados Generados (Solo Admin)")
+            df_resultados = pd.DataFrame([
+                (n, amigo, numero) 
+                for numero, (n, amigo) in emparejamientos_numerados.items()
+            # ], columns=["Regalador", "Receptor", "Número Secreto"])
+            ], columns=["Regalador", "Número Secreto"])
+            # Mostrar al Admin para que sepa los números a enviar
+            st.dataframe(df_resultados)
+            st.info("Distribuye el **Número Secreto** a cada Regalador. Ellos lo usarán en la sección 'Consulta'.")
+            
+            # Actualizar el estado global de la aplicación
+            st.session_state.nombres = nombres
+            st.session_state.emparejamientos_numerados = emparejamientos_numerados
+
+    # 5. Visualización del Estado Actual
+    st.markdown("---")
+    st.markdown("### Estado Actual (JSON Guardado)")
+    if datos["emparejamientos"]:
+        st.success(f"Hay **{len(datos['nombres'])}** participantes cargados y **{len(datos['emparejamientos'])}** emparejamientos generados.")
+    else:
+        st.info("Aún no se ha generado ningún sorteo o el archivo está vacío.")
