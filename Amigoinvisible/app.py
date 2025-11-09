@@ -11,7 +11,7 @@ if __name__ == "__main__":
         page_title="Amigo Invisible ❄️", 
         layout="centered", 
         page_icon="🎁", 
-        initial_sidebar_state="collapsed"
+        initial_sidebar_state="auto"
     )
     st.title("Asignador de Amigo Invisible 🎄")
     
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     st.markdown("""
         <style>
             /* Esconder la hamburguesa de Streamlit */
-            #MainMenu {visibility: hidden;}
+            #MainMenu
             footer {visibility: hidden;}
             header {visibility: hidden;}
             
