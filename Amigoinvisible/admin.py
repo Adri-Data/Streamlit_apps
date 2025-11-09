@@ -1,10 +1,14 @@
 import streamlit as st
 import random
 import pandas as pd
+# Importa tus funciones utils y ADMIN_PASSWORD aquí
 from utils import cargar_datos, guardar_datos, ADMIN_PASSWORD
+import json
 
-# --- Lógica de Generación ---
-
+# --- La función generar_amigo_invisible() y otras funciones de utilidad se mantienen IGUAL. ---
+# Asegúrate de que las funciones cargar_datos, guardar_datos, generar_amigo_invisible y ADMIN_PASSWORD
+# están definidas o importadas correctamente desde utils.py o al inicio de admin.py.
+# ---
 def generar_amigo_invisible(nombres: list, restricciones: dict, max_intentos=10):
     """
     Intenta generar el Amigo Invisible con restricciones.
@@ -21,22 +25,20 @@ def generar_amigo_invisible(nombres: list, restricciones: dict, max_intentos=10)
 
     emparejamientos = None
     
-    # 2. Algoritmo de reintentos para evitar callejones sin salida
+    # 2. Algoritmo de reintentos
     for _ in range(max_intentos):
         regaladores = nombres.copy()
         receptores = nombres.copy()
-        random.shuffle(regaladores) # Orden aleatorio para intentar
+        random.shuffle(regaladores) 
         emparejamientos_intento = {}
         
         exito = True
         for regalador in regaladores:
-            # Filtra receptores: no puede ser él mismo, ni estar en la lista de restricciones
             opciones = [r for r in receptores 
                         if r != regalador 
                         and r not in restricciones.get(regalador, [])]
             
             if not opciones:
-                # Falló la asignación, necesitamos reintentar
                 exito = False
                 break
                 
@@ -44,7 +46,7 @@ def generar_amigo_invisible(nombres: list, restricciones: dict, max_intentos=10)
             emparejamientos_intento[regalador] = elegido
             receptores.remove(elegido)
 
-        if exito and not receptores: # Éxito si todos fueron emparejados y la lista de receptores está vacía
+        if exito and not receptores:
             emparejamientos = emparejamientos_intento
             break
             
@@ -57,25 +59,21 @@ def generar_amigo_invisible(nombres: list, restricciones: dict, max_intentos=10)
     numeros_asignados = set()
     emparejamientos_numerados = {}
     
-    # Asignar un número único a cada regalador (clave es el número)
     for nombre, amigo in emparejamientos.items():
         while True:
-            # Rango de números más amplio para mayor sensación de aleatoriedad
-            numero = random.randint(00, 99)
+            numero = random.randint(00, 99) 
             if numero not in numeros_asignados:
                 numeros_asignados.add(numero)
-                # Formato: {numero_secreto: [regalador, receptor]}
                 emparejamientos_numerados[str(numero)] = [nombre, amigo] 
                 break
 
     return emparejamientos_numerados, emparejamientos
-
 # --- Interfaz de Administración ---
 
 def admin_interface():
     st.subheader("⚙️ Área de Administración (Sorteo y Configuración)")
     
-    # 1. Autenticación
+    # 1. Autenticación (se mantiene igual)
     password = st.text_input("Ingrese la contraseña de administrador", type="password", key="admin_password_input")
     
     if password != ADMIN_PASSWORD:
@@ -84,97 +82,153 @@ def admin_interface():
         
     st.success("Contraseña correcta. ¡Bienvenido!")
     
-    # Cargar datos para el estado inicial de los inputs
-    datos = cargar_datos()
+    datos_persistentes = cargar_datos()
     
-    # Inicializar el estado de sesión para mantener los valores en los widgets
+    # --- Inicialización del Estado de Sesión ---
+    
+    # Inicializar el estado para los nombres
     if 'nombres_input' not in st.session_state:
-        st.session_state.nombres_input = ", ".join(datos["nombres"]) if datos["nombres"] else ""
-    if 'restricciones_data' not in st.session_state:
-        # Inicializar un DataFrame vacío o con datos de ejemplo
-        st.session_state.restricciones_data = pd.DataFrame({
-            "Regalador": ["Alice", "Bob"], 
-            "No puede regalar a": ["Bob", "Alice"]
-        })
+        st.session_state.nombres_input = ", ".join(datos_persistentes.get("nombres", [])) if datos_persistentes.get("nombres") else ""
+        
+    # Inicializar el estado para las restricciones con Checkboxes (NUEVO ESTADO)
+    # Este estado guardará las restricciones del último sorteo para precargar los checkboxes.
+    if 'restricciones_checkboxes' not in st.session_state:
+        # Aquí usaremos un diccionario anidado para rastrear el estado de las restricciones
+        # {Regalador: {Receptor: True/False, ...}}
+        st.session_state.restricciones_checkboxes = {}
 
-    # 2. Configuración de Nombres
+
+    # 2. Configuración de Nombres (se mantiene igual)
     st.markdown("---")
     st.markdown("### 1. Lista de Participantes")
-    st.session_state.nombres_input = st.text_area(
+    nombres_input = st.text_area(
         "Nombres (separados por comas: Juan, María, Pedro)", 
-        st.session_state.nombres_input
+        st.session_state.nombres_input,
+        key="nombres_text_area" 
     )
-    nombres = [n.strip() for n in st.session_state.nombres_input.split(",") if n.strip()]
+    st.session_state.nombres_input = nombres_input
+    nombres = [n.strip() for n in nombres_input.split(",") if n.strip()]
+    
+    # Asegúrate de que haya nombres para el siguiente paso
+    if not nombres:
+        st.warning("Por favor, introduce los nombres de los participantes arriba.")
+        st.markdown("---")
+        # Si no hay nombres, no mostramos la sección de restricciones ni el botón de generar
+        return 
 
-    # 3. Configuración de Restricciones (Usando un Data Editor para mejor UX)
+    # 3. Configuración de Restricciones (¡MODIFICADO: Usamos Checkboxes!)
     st.markdown("---")
-    st.markdown("### 2. Restricciones (Quién NO puede regalar a quién)")
-    st.markdown("Añade filas: **Regalador** y el **Nombre** del que NO puede ser receptor.")
+    st.markdown("### 2. Restricciones de Emparejamiento 🛑")
+    st.markdown("Marca la casilla si el **Regalador** (fila) NO puede regalar al **Receptor** (columna).")
+    
+    # Crear un diccionario temporal para las restricciones que se enviarán al algoritmo
+    restricciones_algoritmo = {nombre: [] for nombre in nombres}
+    
+    # 3.1 Encabezado de la Matriz (Nombres de Receptores)
+    # Creamos las columnas para el diseño de matriz
+    cols = st.columns([1] + [1] * len(nombres))
+    
+    # Primera columna (vacía) + Nombres de Receptores
+    cols[0].write("**Regalador ↓**")
+    for i, receptor in enumerate(nombres):
+        cols[i+1].write(f"**{receptor}**")
 
-    # Usar el Data Editor para una edición más estructurada
-    st.session_state.restricciones_data = st.data_editor(
-        st.session_state.restricciones_data,
-        column_config={
-            "Regalador": st.column_config.SelectboxColumn("Regalador", options=nombres),
-            "No puede regalar a": st.column_config.SelectboxColumn("No puede regalar a", options=nombres)
-        },
-        num_rows="dynamic",
-        use_container_width=True,
-        key="data_editor_restricciones"
-    )
+    st.markdown("---")
 
-    # Procesar el DataFrame de restricciones a un diccionario
-    restricciones = {}
-    if not st.session_state.restricciones_data.empty:
-        for index, row in st.session_state.restricciones_data.iterrows():
-            regalador = row["Regalador"]
-            receptor_prohibido = row["No puede regalar a"]
-            if regalador and receptor_prohibido:
-                if regalador in restricciones:
-                    restricciones[regalador].append(receptor_prohibido)
-                else:
-                    restricciones[regalador] = [receptor_prohibido]
+    # 3.2 Cuerpo de la Matriz (Filas de Checkboxes)
+
+    # Recorrer cada nombre como el Regalador
+    for regalador in nombres:
+        # Crear la fila de columnas para el Regalador actual
+        row_cols = st.columns([1] + [1] * len(nombres))
+        row_cols[0].write(f"**{regalador}**") # Nombre del Regalador
+
+        # Recorrer cada nombre como el Receptor
+        for i, receptor in enumerate(nombres):
+            # 1. Creamos la clave única
+            checkbox_key = f"restrict_{regalador}_{receptor}"
+            
+            # 2. **¡Solución al KeyError!** Inicializar la clave SI NO EXISTE
+            # Esto asegura que si la lista de nombres cambia (y las claves también),
+            # siempre habrá un valor inicial (False) antes de acceder.
+            if checkbox_key not in st.session_state:
+                st.session_state[checkbox_key] = False
+
+            # No permitir que una persona se regale a sí misma (siempre restringido)
+            is_disabled = (regalador == receptor)
+            
+            # Creamos la etiqueta descriptiva, aunque se oculte
+            unique_label = f"Restricción: {regalador} no regala a {receptor}"
+            
+            # 3. Crear el checkbox, usando el valor de sesión ya inicializado
+            is_restricted = row_cols[i+1].checkbox(
+                label=unique_label, 
+                value=st.session_state[checkbox_key], # <-- ¡Ahora el valor existe siempre!
+                key=checkbox_key, 
+                disabled=is_disabled,
+                label_visibility="collapsed" 
+            )
+            
+            # 4. Procesar el estado del Checkbox
+            if is_restricted:
+                # La inicialización del diccionario ya se hizo antes del bucle
+                restricciones_algoritmo[regalador].append(receptor)
 
 
     # 4. Generación y Guardado
     st.markdown("---")
-    if st.button("✨ Generar y Guardar Amigo Invisible"):
+    if st.button("✨ Generar y Guardar Amigo Invisible", use_container_width=True):
+        
         if not nombres:
-            st.warning("La lista de nombres está vacía.")
+            st.error("La lista de participantes está vacía. Añade nombres primero.")
             return
 
-        # Limpiar restricciones duplicadas y autorrestricciones
-        restricciones_limpias = {}
-        for r, prohibidos in restricciones.items():
-             restricciones_limpias[r] = list(set([p for p in prohibidos if p != r]))
+        # La generación ocurre aquí...
+        # ... (código de generación se mantiene igual) ...
 
-        emparejamientos_numerados, emparejamientos_originales = generar_amigo_invisible(nombres, restricciones_limpias)
+        emparejamientos_numerados, emparejamientos_originales = generar_amigo_invisible(nombres, restricciones_algoritmo)
         
         if emparejamientos_numerados:
             st.success("¡Amigo Invisible Generado con éxito!")
             
-            # Guardar el estado
+            # GUARDAR DATOS PERSISTENTEMENTE
             guardar_datos(nombres, emparejamientos_numerados)
             
-            # Mostrar resultados de forma segura para el administrador
-            st.subheader("Resultados Generados (Solo Admin)")
-            df_resultados = pd.DataFrame([
-                (n, amigo, numero) 
-                for numero, (n, amigo) in emparejamientos_numerados.items()
-            # ], columns=["Regalador", "Receptor", "Número Secreto"])
-            ], columns=["Regalador", "Número Secreto"])
-            # Mostrar al Admin para que sepa los números a enviar
-            st.dataframe(df_resultados)
-            st.info("Distribuye el **Número Secreto** a cada Regalador. Ellos lo usarán en la sección 'Consulta'.")
-            
-            # Actualizar el estado global de la aplicación
+            # Actualizar el estado de la sesión para la consulta inmediata
             st.session_state.nombres = nombres
             st.session_state.emparejamientos_numerados = emparejamientos_numerados
 
-    # 5. Visualización del Estado Actual
+            # Mostrar resultados para el administrador
+            st.subheader("Resultados Generados (Solo Admin)")
+            
+            # 1. Crear el DataFrame completo
+            df_resultados = pd.DataFrame([
+                (n, amigo, numero) 
+                for numero, (n, amigo) in emparejamientos_numerados.items()
+            ], columns=["Regalador", "Receptor", "Número Secreto"]) 
+
+            # 2. Checkbox de Debug para mostrar la columna 'Receptor' (Amigo Secreto)
+            # Usamos un st.container para controlar el diseño del checkbox
+            with st.container():
+                mostrar_receptor = st.checkbox("Mostrar Receptor Secreto (Modo Debug)", key="debug_receptor")
+            
+            # 3. Aplicar filtro de columnas según el estado del checkbox
+            if mostrar_receptor:
+                # Mostrar todas las columnas (Modo Debug)
+                df_mostrar = df_resultados
+                st.warning("⚠️ MODO DEBUG ACTIVO: La columna 'Receptor' revela el Amigo Secreto.")
+            else:
+                # Ocultar la columna 'Receptor' (Modo Seguro para compartir)
+                df_mostrar = df_resultados[["Regalador", "Número Secreto"]]
+                st.info("MODO SEGURO: Solo se muestran los números para distribuir.")
+            
+            st.dataframe(df_mostrar, use_container_width=True)
+            st.caption("Distribuye el Número Secreto a cada Regalador. Ellos lo usarán en la sección 'Consulta'.")
+    # 5. Visualización del Estado Actual (se mantiene igual)
     st.markdown("---")
-    st.markdown("### Estado Actual (JSON Guardado)")
-    if datos["emparejamientos"]:
-        st.success(f"Hay **{len(datos['nombres'])}** participantes cargados y **{len(datos['emparejamientos'])}** emparejamientos generados.")
+    st.markdown("### Estado Actual del Sorteo Guardado")
+    if datos_persistentes.get("emparejamientos"):
+        st.info(f"Hay **{len(datos_persistentes['nombres'])}** participantes cargados y **{len(datos_persistentes['emparejamientos'])}** emparejamientos generados.")
+        st.caption("Esta información proviene del último sorteo guardado en 'data.json'.")
     else:
-        st.info("Aún no se ha generado ningún sorteo o el archivo está vacío.")
+        st.info("Aún no se ha generado ningún sorteo.")
