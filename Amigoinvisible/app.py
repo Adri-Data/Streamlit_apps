@@ -8,7 +8,7 @@ if __name__ == "__main__":
     
     # 1. Configuración de la Página
     st.set_page_config(
-        page_title="Amigo Invisible 2025 ❄️", 
+        page_title="Amigo Invisible 25 ❄️", 
         layout="centered", 
         page_icon="🎁", 
         initial_sidebar_state="auto"
@@ -43,28 +43,3 @@ if __name__ == "__main__":
         ### ☃️ ¡Felices Fiestas! 🎅
         Crea tu sorteo de Amigo Invisible.
     """)
-
-    # Estilos CSS más limpios
-    st.markdown("""
-        <style>
-            /* Esconder la hamburguesa de Streamlit */
-            #MainMenu
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            
-            /* Estilos para el título */
-            .stApp > header {
-                background-color: transparent;
-            }
-            h1 {
-                text-align: center;
-                color: #B22222; /* Rojo Navideño */
-                font-size: 2.5em;
-                margin-bottom: 0.5em;
-            }
-            .stSuccess, .stInfo {
-                font-weight: bold;
-                font-size: 1.1em;
-            }
-        </style>
-    """, unsafe_allow_html=True)
