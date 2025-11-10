@@ -8,7 +8,7 @@ if __name__ == "__main__":
     
     # 1. Configuración de la Página
     st.set_page_config(
-        page_title="Amigo Invisible ❄️", 
+        page_title="Amigo Invisible 2025 ❄️", 
         layout="centered", 
         page_icon="🎁", 
         initial_sidebar_state="auto"
