@@ -1,0 +1,71 @@
+{
+    "nombres": [
+        "Adri",
+        "Irene",
+        "MJ",
+        "Alba",
+        "Merche",
+        "Mire",
+        "Paula",
+        "Silvi",
+        "Alex",
+        "Iker",
+        "Pablo",
+        "Cristina",
+        "Yaya"
+    ],
+    "emparejamientos": {
+        "16": [
+            "Cristina",
+            "Adri"
+        ],
+        "38": [
+            "Alex",
+            "Merche"
+        ],
+        "54": [
+            "Irene",
+            "Silvi"
+        ],
+        "85": [
+            "Alba",
+            "Mire"
+        ],
+        "49": [
+            "MJ",
+            "Alex"
+        ],
+        "0": [
+            "Iker",
+            "Paula"
+        ],
+        "94": [
+            "Silvi",
+            "Irene"
+        ],
+        "17": [
+            "Adri",
+            "Cristina"
+        ],
+        "46": [
+            "Yaya",
+            "Iker"
+        ],
+        "10": [
+            "Pablo",
+            "MJ"
+        ],
+        "27": [
+            "Merche",
+            "Alba"
+        ],
+        "59": [
+            "Mire",
+            "Pablo"
+        ],
+        "56": [
+            "Paula",
+            "Yaya"
+        ]
+    }
+}
