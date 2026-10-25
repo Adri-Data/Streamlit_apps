@@ -1,6 +1,6 @@
 import streamlit as st
 from admin import admin_interface
-from user_interface import user_interface
+from user_interface import is_reveal_screen, user_interface
 from utils import cargar_datos
 
 # --- Lógica principal ---
@@ -13,7 +13,9 @@ if __name__ == "__main__":
         page_icon="🎁", 
         initial_sidebar_state="auto"
     )
-    st.title("Asignador de Amigo Invisible 🎄")
+    pantalla_revelacion = is_reveal_screen()
+    if not pantalla_revelacion:
+        st.title("Asignador de Amigo Invisible 🎄")
     
     # 2. Cargar datos persistentes
     datos = cargar_datos()
@@ -23,13 +25,15 @@ if __name__ == "__main__":
     st.session_state.emparejamientos_numerados = datos["emparejamientos"]
 
     # 3. Navegación
-    st.sidebar.title("Navegación")
-    page = st.sidebar.radio(
-        "Selecciona una página:", 
-        ("Consulta (Usuario)", "Administración (Sorteo)")
-    )
-
-    st.markdown("---")
+    if pantalla_revelacion:
+        page = "Consulta (Usuario)"
+    else:
+        st.sidebar.title("Navegación")
+        page = st.sidebar.radio(
+            "Selecciona una página:",
+            ("Consulta (Usuario)", "Administración (Sorteo)")
+        )
+        st.markdown("---")
 
     # 4. Enrutamiento
     if page == "Administración (Sorteo)":
@@ -38,8 +42,9 @@ if __name__ == "__main__":
         user_interface() 
 
     # 5. Decoración (Mejor uso de emojis y estilos Streamlit)
-    st.sidebar.markdown("""
-        ---
-        ### ☃️ ¡Felices Fiestas! 🎅
-        Crea tu sorteo de Amigo Invisible.
-    """)
+    if not pantalla_revelacion:
+        st.sidebar.markdown("""
+            ---
+            ### ☃️ ¡Felices Fiestas! 🎅
+            Crea tu sorteo de Amigo Invisible.
+        """)

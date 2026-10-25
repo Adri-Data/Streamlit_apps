@@ -1,3 +1,5 @@
+from html import escape
+
 import streamlit as st
 
 from utils import cargar_datos
@@ -12,8 +14,59 @@ def _query_params():
         return {key: values[-1] if isinstance(values, list) else values for key, values in legacy.items()}
 
 
+def _assignment_identity(user_name, numero):
+    user_name = str(user_name or "").strip()
+    numero = str(numero or "").strip()
+    if not user_name or not numero.isdigit():
+        return ""
+    return f"{user_name.casefold()}:{int(numero)}"
+
+
+def is_reveal_screen():
+    """Whether the current URL and session are showing a revealed assignment."""
+    params = _query_params()
+    user_name = params.get("user_name") or st.session_state.get("user_name_input", "")
+    numero = params.get("number") or st.session_state.get("user_number_input", "")
+    identity = _assignment_identity(user_name, numero)
+    return bool(identity and identity == st.session_state.get("revealed_assignment_identity"))
+
+
+def _show_reveal(nombre_receptor):
+    st.markdown(
+        """
+        <style>
+        [data-testid="stHeader"], [data-testid="stSidebar"], footer {display: none !important;}
+        [data-testid="stAppViewContainer"] {
+            background: radial-gradient(ellipse at top, #253b60 0%, #101827 58%, #090d16 100%);
+        }
+        [data-testid="stMain"] .block-container {
+            min-height: 100vh; max-width: 100% !important; padding: 0 1.5rem !important;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .reveal-card {text-align: center; padding: clamp(2rem, 7vw, 5rem); width: min(100%, 1100px);}
+        .reveal-icon {font-size: clamp(3rem, 8vw, 6rem); line-height: 1; margin-bottom: 1.5rem;}
+        .reveal-kicker {color: #c8d8f1; font-size: clamp(1.2rem, 3vw, 2rem); letter-spacing: .16em;
+            text-transform: uppercase; font-weight: 700; margin: 0 0 1rem;}
+        .reveal-name {color: #fff; font-size: clamp(4rem, 14vw, 10rem); line-height: 1.02;
+            font-weight: 900; letter-spacing: -.045em; margin: 0;
+            text-shadow: 0 8px 40px rgba(108, 170, 255, .48); overflow-wrap: anywhere;}
+        .reveal-secret {color: #d7e3f3; font-size: clamp(1rem, 2.5vw, 1.5rem); margin-top: 2rem;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="reveal-card"><div class="reveal-icon">🎁</div>'
+        f'<p class="reveal-kicker">Tu regalo es para</p>'
+        f'<h1 class="reveal-name">{escape(nombre_receptor)}</h1>'
+        f'<p class="reveal-secret">🤫 Guarda el secreto</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.snow()
+    st.balloons()
+
+
 def user_interface():
-    st.title("Consulta de Amigo Invisible 🎁")
     datos = cargar_datos()
     emparejamientos = datos["emparejamientos"]
 
@@ -30,6 +83,20 @@ def user_interface():
         st.error("Este enlace pertenece a otra aplicación.")
         return
 
+    identity = _assignment_identity(user_name, numero)
+    if not identity:
+        user_name = st.session_state.get("user_name_input", user_name)
+        numero = str(st.session_state.get("user_number_input", numero)).strip()
+        identity = _assignment_identity(user_name, numero)
+
+    if identity and identity == st.session_state.get("revealed_assignment_identity"):
+        _show_reveal(st.session_state.revealed_recipient)
+        return
+
+    st.session_state.pop("revealed_assignment_identity", None)
+    st.session_state.pop("revealed_recipient", None)
+
+    st.title("Consulta de Amigo Invisible 🎁")
     st.subheader("Tu asignación secreta")
     if user_name and numero:
         st.write(f"Enlace preparado para **{user_name}**.")
@@ -54,7 +121,6 @@ def user_interface():
             st.error("Ese enlace no coincide con el nombre asignado. Contacta con el organizador.")
             return
 
-        st.snow()
-        st.balloons()
-        st.success(f"🎉 **{nombre_receptor}** es la persona a quien tienes que hacer el regalo.")
-        st.markdown("🤫 ¡Guarda el secreto!")
+        st.session_state.revealed_assignment_identity = _assignment_identity(user_name, numero)
+        st.session_state.revealed_recipient = nombre_receptor
+        st.rerun()
