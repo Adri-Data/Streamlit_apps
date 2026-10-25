@@ -1,71 +1,72 @@
 {
-    "nombres": [
-        "Adri",
-        "Irene",
-        "MJ",
-        "Alba",
-        "Merche",
-        "Mire",
-        "Paula",
-        "Silvi",
-        "Alex",
-        "Iker",
-        "Pablo",
-        "Cristina",
-        "Yaya"
+  "nombres": [
+    "Adri",
+    "Irene",
+    "MJ",
+    "Alba",
+    "Merche",
+    "Mire",
+    "Paula",
+    "Silvi",
+    "Alex",
+    "Iker",
+    "Pablo",
+    "Cristina",
+    "Yaya"
+  ],
+  "emparejamientos": {
+    "665855": [
+      "Adri",
+      "Paula"
     ],
-    "emparejamientos": {
-        "16": [
-            "Cristina",
-            "Adri"
-        ],
-        "38": [
-            "Alex",
-            "Merche"
-        ],
-        "54": [
-            "Irene",
-            "Silvi"
-        ],
-        "85": [
-            "Alba",
-            "Mire"
-        ],
-        "49": [
-            "MJ",
-            "Alex"
-        ],
-        "0": [
-            "Iker",
-            "Paula"
-        ],
-        "94": [
-            "Silvi",
-            "Irene"
-        ],
-        "17": [
-            "Adri",
-            "Cristina"
-        ],
-        "46": [
-            "Yaya",
-            "Iker"
-        ],
-        "10": [
-            "Pablo",
-            "MJ"
-        ],
-        "27": [
-            "Merche",
-            "Alba"
-        ],
-        "59": [
-            "Mire",
-            "Pablo"
-        ],
-        "56": [
-            "Paula",
-            "Yaya"
-        ]
-    }
+    "385041": [
+      "Irene",
+      "Alba"
+    ],
+    "103940": [
+      "MJ",
+      "Yaya"
+    ],
+    "527184": [
+      "Alba",
+      "Irene"
+    ],
+    "522925": [
+      "Merche",
+      "Iker"
+    ],
+    "453121": [
+      "Mire",
+      "Alex"
+    ],
+    "353351": [
+      "Paula",
+      "Silvi"
+    ],
+    "592131": [
+      "Silvi",
+      "Adri"
+    ],
+    "140733": [
+      "Alex",
+      "Mire"
+    ],
+    "279356": [
+      "Iker",
+      "Merche"
+    ],
+    "831810": [
+      "Pablo",
+      "Cristina"
+    ],
+    "850966": [
+      "Cristina",
+      "Pablo"
+    ],
+    "447801": [
+      "Yaya",
+      "MJ"
+    ]
+  },
+  "base_url": "https://amigoinvisible.streamlit.app/"
 }
