@@ -1,45 +1,50 @@
 import json
 import os
+from pathlib import Path
+
 import streamlit as st
 
-# --- Configuración Secreta ---
-# NOTA: En una aplicación real, esta contraseña debería ser una variable de entorno
-# o cargarse desde un archivo de configuración secreto (como st.secrets)
-ADMIN_PASSWORD = "admin123" 
 
-# --- Rutas y Nombres de Archivos ---
-DATA_FILE = 'data.json'
+def _admin_password():
+    password = os.environ.get("AMIGO_ADMIN_PASSWORD")
+    if password:
+        return password
+    try:
+        return st.secrets.get("admin_password", "admin123")
+    except Exception:
+        return "admin123"
+
+
+ADMIN_PASSWORD = _admin_password()
+DATA_FILE = Path(__file__).resolve().with_name("data.json")
+
 
 def cargar_datos():
-    """Carga los datos de emparejamientos y nombres desde el archivo JSON."""
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, 'r') as f:
-                datos = json.load(f)
-                
-            # Asegurar que el formato JSON cargado sea correcto para la app
-            if not isinstance(datos.get("emparejamientos"), dict):
-                st.error("Error en el formato del archivo data.json.")
-                return {"nombres": [], "emparejamientos": {}}
+    """Load the saved draw, keeping compatibility with the original JSON format."""
+    if not DATA_FILE.exists():
+        return {"nombres": [], "emparejamientos": {}, "base_url": ""}
+    try:
+        with DATA_FILE.open("r", encoding="utf-8") as archivo:
+            datos = json.load(archivo)
+        if not isinstance(datos, dict) or not isinstance(datos.get("emparejamientos", {}), dict):
+            st.error("El archivo data.json tiene un formato no válido.")
+            return {"nombres": [], "emparejamientos": {}, "base_url": ""}
+        return {
+            "nombres": datos.get("nombres", []),
+            "emparejamientos": datos.get("emparejamientos", {}),
+            "base_url": datos.get("base_url", ""),
+        }
+    except (json.JSONDecodeError, OSError) as error:
+        st.error(f"No se pudo leer data.json: {error}")
+        return {"nombres": [], "emparejamientos": {}, "base_url": ""}
 
-            return {
-                # Lista de nombres cargados
-                "nombres": datos.get("nombres", []), 
-                # Diccionario {numero: [regalador, receptor]}
-                "emparejamientos": datos.get("emparejamientos", {}) 
-            }
-        except json.JSONDecodeError:
-            st.error(f"Error al decodificar JSON en {DATA_FILE}. Archivo corrupto.")
-            return {"nombres": [], "emparejamientos": {}}
-    
-    # Devuelve la estructura inicial si el archivo no existe
-    return {"nombres": [], "emparejamientos": {}}
 
-def guardar_datos(nombres: list, emparejamientos_numerados: dict):
-    """Guarda los datos en el archivo JSON."""
-    data_to_save = {
-        "nombres": nombres, 
-        "emparejamientos": emparejamientos_numerados
+def guardar_datos(nombres, emparejamientos_numerados, base_url=""):
+    """Save the draw without changing the original participant assignments format."""
+    datos = {
+        "nombres": nombres,
+        "emparejamientos": emparejamientos_numerados,
+        "base_url": base_url,
     }
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data_to_save, f, indent=4)
+    with DATA_FILE.open("w", encoding="utf-8") as archivo:
+        json.dump(datos, archivo, ensure_ascii=False, indent=2)
